@@ -78,10 +78,11 @@ func Instance(port ...int) MockServerBehavior {
 }
 
 func (self *MockServer) router(w http.ResponseWriter, r *http.Request) {
+	fullPath := self.fullPath(r)
 	var match bool
 	for method, stub := range self.stubWhen {
 		if r.Method == method.String() {
-			if stub.path.MatchString(r.URL.Path) {
+			if stub.path.MatchString(fullPath) {
 				w.WriteHeader(stub.status)
 				fmt.Fprintf(w, string(stub.thenReturn))
 				match = true
@@ -91,9 +92,19 @@ func (self *MockServer) router(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !match {
-		panic(errors.New("No stub found for path" + r.URL.Path))
+		panic(errors.New("No stub found for path" + fullPath))
 	}
 
+}
+
+func (self *MockServer) fullPath(r *http.Request) (fullPath string) {
+	if r.URL.RawQuery == "" {
+		fullPath = r.URL.Path
+	} else {
+		fullPath = r.URL.Path + "?" + r.URL.RawQuery
+	}
+
+	return
 }
 
 func (self *MockServer) When(httpMethod HTTP_Method, pathExpr string) StubReturnBehavior {

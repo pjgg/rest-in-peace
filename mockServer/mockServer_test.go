@@ -14,6 +14,7 @@ import (
 const mockServerPort = 8080
 
 func (self *mockServerSuite) SetupTest() {
+	// Remember clean the stubs everytime that you run a test
 	self.mockServer.CleanStub()
 }
 
@@ -24,6 +25,46 @@ func (self *mockServerSuite) TestHelloWorld() {
 	self.mockServer.When(GET, "/v1/service/hello*").ThenReturn(outboundJson, 200)
 
 	req, _ := newHTTPRequest("GET", "http://localhost:8080/v1/service/hello/", nil, nil)
+	if resp, err := makeHTTPQuery(req); err == nil {
+		data, _ := ioutil.ReadAll(resp.Body)
+
+		assert.Nil(self.T(), self.jsonAssert.AssertJsonEquals(outboundJson, data), "Unexpected error")
+		assert.Equal(self.T(), 200, resp.StatusCode)
+	}
+
+	if err != nil {
+		self.Fail("Unexpected error", err.Error())
+	}
+
+}
+
+func (self *mockServerSuite) TestComplexResponse() {
+	var err error
+	outboundJson := []byte(`{ "id": "0001", "type": "donut", "name": "Cake", "ppu": 0.55, "batters": { "batter": [ { "id": "1001", "type": "Regular" }, { "id": "1002", "type": "Chocolate" }, { "id": "1003", "type": "Blueberry" }, { "id": "1004", "type": "Devil's Food" } ] }, "topping": [ { "id": "5001", "type": "None" }, { "id": "5002", "type": "Glazed" }, { "id": "5005", "type": "Sugar" }, { "id": "5007", "type": "Powdered Sugar" }, { "id": "5006", "type": "Chocolate with Sprinkles" }, { "id": "5003", "type": "Chocolate" }, { "id": "5004", "type": "Maple" } ] }`)
+
+	self.mockServer.When(GET, "/v1/service/hello\\?param=\\d+").ThenReturn(outboundJson, 200)
+
+	req, _ := newHTTPRequest("GET", "http://localhost:8080/v1/service/hello?param=10", nil, nil)
+	if resp, err := makeHTTPQuery(req); err == nil {
+		data, _ := ioutil.ReadAll(resp.Body)
+
+		assert.Nil(self.T(), self.jsonAssert.AssertJsonEquals(outboundJson, data), "Unexpected error")
+		assert.Equal(self.T(), 200, resp.StatusCode)
+	}
+
+	if err != nil {
+		self.Fail("Unexpected error", err.Error())
+	}
+
+}
+
+func (self *mockServerSuite) TestRequestWithMultipleQueryParams() {
+	var err error
+	outboundJson := []byte(`{ "id": "0001", "type": "donut", "name": "Cake", "ppu": 0.55, "batters": { "batter": [ { "id": "1001", "type": "Regular" }, { "id": "1002", "type": "Chocolate" }, { "id": "1003", "type": "Blueberry" }, { "id": "1004", "type": "Devil's Food" } ] }, "topping": [ { "id": "5001", "type": "None" }, { "id": "5002", "type": "Glazed" }, { "id": "5005", "type": "Sugar" }, { "id": "5007", "type": "Powdered Sugar" }, { "id": "5006", "type": "Chocolate with Sprinkles" }, { "id": "5003", "type": "Chocolate" }, { "id": "5004", "type": "Maple" } ] }`)
+
+	self.mockServer.When(GET, "/v1/service/hello\\?param=\\d+&param_two=\\d+").ThenReturn(outboundJson, 200)
+
+	req, _ := newHTTPRequest("GET", "http://localhost:8080/v1/service/hello?param=10&param_two=11", nil, nil)
 	if resp, err := makeHTTPQuery(req); err == nil {
 		data, _ := ioutil.ReadAll(resp.Body)
 
