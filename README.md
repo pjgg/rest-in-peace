@@ -30,8 +30,8 @@ mockServer.CleanStub()
 4. define your test stubs
 
 ```golang
-outboundJson := []byte(`{"key":"hello","value":"world"}`)
-mockServer.When(GET, "/v1/service/hello*").ThenReturn(outboundJson, 200)
+outboundJSON := []byte(`{"key":"hello","value":"world"}`)
+mockServer.When(GET, "/v1/service/hello*").ThenReturn(outboundJSON, 200)
 ```
 
 ## Testify Integration example
@@ -63,35 +63,36 @@ func TestMockServerSuite(t *testing.T) {
 3. Define your test setup, the code that must be run before each test.
 
 ```golang
-func (self *mockServerSuite) SetupTest() {
+func (testSuit *mockServerSuite) SetupTest() {
 	// Remember clean the stubs everytime that you run a test
-	self.mockServer.CleanStub()
+	testSuit.mockServer.CleanStub()
 }
 ```
 
 4. Write down your unit test
 
 ```golang
-func (self *mockServerSuite) TestHelloWorld() {
+func (testSuit *mockServerSuite) TestHelloWorld() {
 	var err error
-	outboundJson := []byte(`{"key":"hello","value":"world"}`)
+	var resp *http.Response
+	outboundJSON := []byte(`{"key":"hello","value":"world"}`)
 
-	self.mockServer.When(GET, "/v1/service/hello*").ThenReturn(outboundJson, 200)
+	testSuit.mockServer.When(GET, "/v1/service/hello*").ThenReturn(outboundJSON, 200)
 
     // Your service as myService.method() or a simple httpRequest
     req, _ := newHTTPRequest("GET", "http://localhost:8080/v1/service/hello/", nil, nil)
     
     // assert your response.
-	if resp, err := makeHTTPQuery(req); err == nil {
+	if resp, err = makeHTTPQuery(req); err == nil {
 		data, _ := ioutil.ReadAll(resp.Body)
 
         // You could use restInPeace jsonAssert or testify asserts or your favorite assert lib
-		assert.Nil(self.T(), self.jsonAssert.AssertJsonEquals(outboundJson, data), "Unexpected error")
-		assert.Equal(self.T(), 200, resp.StatusCode)
+		assert.Nil(testSuit.T(), testSuit.jsonAssert.AssertJsonEquals(outboundJSON, data), "Unexpected error")
+		assert.Equal(testSuit.T(), 200, resp.StatusCode)
 	}
 
 	if err != nil {
-		self.Fail("Unexpected error", err.Error())
+		testSuit.Fail("Unexpected error", err.Error())
 	}
 
 }
