@@ -7,6 +7,10 @@ The aim of this project is to mock the microservices responses that your service
 
 ![Basic Usage](https://github.com/pjgg/rest-in-peace/blob/master/basicDiagram.png "Basic usage")
 
+## Install
+
+http://gopkg.in/pjgg/rest-in-peace.v0
+
 ## How to use
 
 1. Define MockServer port
