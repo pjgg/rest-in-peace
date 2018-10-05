@@ -50,7 +50,7 @@ func (method HTTPMethod) String() string {
 
 // MockServer represent the server that will contains all your stubs. When you are developing a microservice architecture you should talk with a lot of third party services, or other decouple service, so in order to test your solution you must mock all of these services. MockServer is the server that will mock those third party services.
 type MockServer struct {
-	stubWhen map[HTTPMethod]*stubReturn
+	stubWhen map[HTTPMethod]map[string]*stubReturn
 	Port     int
 }
 
@@ -78,7 +78,7 @@ type StubReturn interface {
 // Instance return a singleton MockServer instance, this is why is important to clean your stubs before each test.
 func Instance(port ...int) StubAction {
 	mockServerSingleton.Do(func() {
-		mockServer.stubWhen = make(map[HTTPMethod]*stubReturn)
+		mockServer.stubWhen = make(map[HTTPMethod]map[string]*stubReturn)
 		if len(port) > 0 {
 			mockServer.Port = port[0]
 		} else {
@@ -95,13 +95,16 @@ func Instance(port ...int) StubAction {
 func (mockServer *MockServer) router(w http.ResponseWriter, r *http.Request) {
 	fullPath := mockServer.fullPath(r)
 	var match bool
-	for method, stub := range mockServer.stubWhen {
+	for method, stubMap := range mockServer.stubWhen {
 		if r.Method == method.String() {
-			if stub.path.MatchString(fullPath) && mockServer.checkHeaders(r, stub.headers) {
-				w = mockServer.buildResponse(w, stub)
-				match = true
-				break
-			}
+                    for _, stub := range stubMap {
+                        if stub.path.MatchString(fullPath) && mockServer.checkHeaders(r, stub.headers) {
+			    w = mockServer.buildResponse(w, stub)
+			    match = true
+			    break
+		        }
+                    }
+                    break
 		}
 	}
 
@@ -141,16 +144,19 @@ func (mockServer *MockServer) fullPath(r *http.Request) (fullPath string) {
 
 // When ... define the precondition that should be achived in order to trigger the stubReturn. pathExpr must be a URL regular expression.
 func (mockServer *MockServer) When(httpMethod HTTPMethod, pathExpr string) StubReturn {
-	stubReturn := new(stubReturn)
-	stubReturn.path = regexp.MustCompile(pathExpr)
-	stubReturn.headers = make(map[string]string)
-	mockServer.stubWhen[httpMethod] = stubReturn
-	return stubReturn
+	stubReturnObj := new(stubReturn)
+	stubReturnObj.path = regexp.MustCompile(pathExpr)
+	stubReturnObj.headers = make(map[string]string)
+        if _,ok := mockServer.stubWhen[httpMethod]; ok == false {
+            mockServer.stubWhen[httpMethod] = make(map[string]*stubReturn)
+        }
+        mockServer.stubWhen[httpMethod][pathExpr] = stubReturnObj
+	return stubReturnObj
 }
 
 // CleanStub ... cleans all stub defined previously
 func (mockServer *MockServer) CleanStub() {
-	mockServer.stubWhen = make(map[HTTPMethod]*stubReturn)
+	mockServer.stubWhen = make(map[HTTPMethod]map[string]*stubReturn)
 }
 
 // ThenReturn, is the action that will be returned for a given precondition.
